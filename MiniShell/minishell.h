@@ -12,49 +12,63 @@
 #include <unordered_set>
 #include <vector>
 #include <unistd.h>
+#include <cstdlib>
 #include <sstream>
-#include <dirent.h>
+#include <cstdio>
 #include <stdexcept>
 #include <exception>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <ctype.h>
 
 using namespace std;
 
 #define rep_iter(it, begin, end) for(auto it=begin;it!=end;it++)
 #define BUFF_SIZE 1000
 
+extern char **environ;
+
 void rtrim_str(string& s);
 void ltrim_str(string& s);
 string trim_str(const string& s);
+void trim_str_ip(string &s);
 bool is_number(const string& s);
-pair<string, string> parse_line(const string& line);
-
-//enum type used in execute_command, used to determine what command has been executed/requested to be executed
-enum CommandType {
-    EXT = -1, CD, PWD, HIST, EXP, REC_CMD, EXCL
-};
+string get_io_file(const string& str, char sep);
 
 class MiniShell {
 public:
     MiniShell();
     ~MiniShell();
-    void execute_command(const CommandType& cmd, const string& arguments = "");
-    string execute_history_command(const string& cmd_num);
+    void execute();
+
 private:
     vector<string> _history;
     unordered_map<string, string> shell_vars;
-    void exit();
+
+    string execute_history_command(string& cmd);
+    pair<string, string> get_cmd_with_args(const string &str);
+    vector<string> split_by_sep(const string &str, char sep);
+    pair<string, string> parse_shell_var(string var);
+    bool is_internal_cmd(string cmd);
+    string get_hist_num(string& str);
+
     void read_data();
     void persist_data();
     void cd(const string& path);
-    void pwd();
-    void list_history();
-    void export_variable(const string& var);
+    void pwd(int fd);
+    void list_history(int fd);
+    void export_variable(const string& var, int fd);
     void record_command(const string& cmd);
-    void list_shell_vars();
+    void list_shell_vars(int fd);
     void add_shell_var(const string& var);
-    void find_external_command(const string& args);
-    pair<string, string> parse_shell_var(string var);
-    string wd;
+    void set_env();
+    void set_cwd();
+    void get_cstring_array(vector<string>& s_argv, char ** argv);
+    void setup_redirection(string& redirect, int& in, int& out, int& err);
+    void execute_internal_command(vector<string>& cmd, int fd);
+    void expand_shell_vars(string& str);
+    void replace_hist_commands(string& command);
 };
 
 #endif
